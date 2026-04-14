@@ -1,11 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-
-// ════════════════════════════════════════════════════════════════
-//  CONFIG — sesuaikan nilai-nilai ini
-// ════════════════════════════════════════════════════════════════
 const SHEET_ID = "1et6H2oNeaRLaUws_0l8xSxnyIG1A8MZuWoU4xjIPjIA";
 
-// sheetName harus PERSIS sama dengan nama tab di Google Sheets
 const ROOMS = [
   { id: "office1", label: "Office 1", sheetName: "office1", icon: "desktop" },
   { id: "office2", label: "Office 2", sheetName: "office2", icon: "desktop" },
@@ -23,16 +18,10 @@ const ROOMS = [
   },
 ];
 
-// URL Apps Script untuk write comment (opsional, lihat README di bawah)
 const APPS_SCRIPT_URL = "GANTI_DENGAN_APPS_SCRIPT_URL";
 
-// URL endpoint ML predict — bisa Vercel serverless /api/predict atau eksternal
-// Kalau belum ada, biarkan string ini — dashboard tetap jalan tanpa prediksi
 const ML_API_URL = "/api/predict";
 
-// ════════════════════════════════════════════════════════════════
-//  ML Label mapping
-// ════════════════════════════════════════════════════════════════
 const ML_LABELS = {
   0: {
     text: "Nyaman",
@@ -57,9 +46,6 @@ const ML_LABELS = {
   },
 };
 
-// ════════════════════════════════════════════════════════════════
-//  Helpers
-// ════════════════════════════════════════════════════════════════
 const clamp = (v, min, max) => Math.min(Math.max(v, min), max);
 
 const THRESHOLDS = {
@@ -76,13 +62,10 @@ const COLORS = {
 };
 const getColor = (type, val) => COLORS[THRESHOLDS[type](val)] ?? COLORS.ok;
 
-// Parse berbagai format timestamp dari Google Sheets
-// GSheets kadang return "Date(2024,7,10,20,0,0)" atau string biasa
 function parseSheetTimestamp(raw) {
   if (!raw) return null;
   const s = String(raw).trim();
 
-  // Format "Date(Y,M,D,h,m,s)" — bulan 0-based
   const dateMatch = s.match(
     /^Date\((\d+),(\d+),(\d+)(?:,(\d+),(\d+),(\d+))?\)$/,
   );
@@ -96,7 +79,6 @@ function parseSheetTimestamp(raw) {
   return isNaN(d.getTime()) ? null : d;
 }
 
-// Cari baris yang timestamp-nya paling dekat dengan waktu sekarang
 function findClosestRow(rows) {
   if (!rows.length) return null;
   const now = Date.now();
@@ -113,7 +95,6 @@ function findClosestRow(rows) {
       best = row;
     }
   }
-  // Fallback ke baris terakhir kalau semua timestamp null
   return best ?? rows[rows.length - 1];
 }
 
@@ -127,15 +108,11 @@ function parseComments(raw) {
   }
 }
 
-// ════════════════════════════════════════════════════════════════
-//  Google Sheets fetch
-// ════════════════════════════════════════════════════════════════
 async function fetchRoomData(sheetName) {
   const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
   const res = await fetch(url);
   const text = await res.text();
 
-  // GSheets membungkus JSON dengan "/*O_o*/\ngoogle.visualization.Query.setResponse(" ... ");"
   const jsonStr = text.replace(/^[^(]+\(/, "").replace(/\);?\s*$/, "");
   const json = JSON.parse(jsonStr);
   const rows = json.table?.rows ?? [];
@@ -184,9 +161,6 @@ async function fetchPrediction(temp, hum, co2) {
   }
 }
 
-// ════════════════════════════════════════════════════════════════
-//  Write comment back ke Sheets via Apps Script
-// ════════════════════════════════════════════════════════════════
 async function writeCommentToSheet(sheetName, comments) {
   if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.startsWith("GANTI")) return false;
   try {
@@ -202,9 +176,6 @@ async function writeCommentToSheet(sheetName, comments) {
   }
 }
 
-// ════════════════════════════════════════════════════════════════
-//  SVG Gauge
-// ════════════════════════════════════════════════════════════════
 function GaugeArc({ fraction, color }) {
   const r = 42,
     cx = 56,
@@ -246,9 +217,6 @@ function GaugeArc({ fraction, color }) {
   );
 }
 
-// ════════════════════════════════════════════════════════════════
-//  Icons
-// ════════════════════════════════════════════════════════════════
 function Icon({ name, size = 20, color = "currentColor" }) {
   const s = { width: size, height: size, display: "block", flexShrink: 0 };
   const p = {
@@ -308,9 +276,6 @@ function Icon({ name, size = 20, color = "currentColor" }) {
   return null;
 }
 
-// ════════════════════════════════════════════════════════════════
-//  ML Badge
-// ════════════════════════════════════════════════════════════════
 function MLBadge({ label, loading }) {
   if (loading)
     return (
@@ -413,9 +378,6 @@ function MLBadge({ label, loading }) {
   );
 }
 
-// ════════════════════════════════════════════════════════════════
-//  Metric Card
-// ════════════════════════════════════════════════════════════════
 function MetricCard({ label, value, unit, icon, fraction, color, warn }) {
   return (
     <div
@@ -487,9 +449,6 @@ function MetricCard({ label, value, unit, icon, fraction, color, warn }) {
   );
 }
 
-// ════════════════════════════════════════════════════════════════
-//  Comment Section
-// ════════════════════════════════════════════════════════════════
 function CommentItem({ comment }) {
   return (
     <div
@@ -764,9 +723,6 @@ function CommentSection({ comments, onAdd }) {
   );
 }
 
-// ════════════════════════════════════════════════════════════════
-//  Support Modal
-// ════════════════════════════════════════════════════════════════
 function SupportModal({ onClose }) {
   const [waPhone, setWaPhone] = useState("");
   const [waMsg, setWaMsg] = useState(
@@ -907,9 +863,6 @@ function SupportModal({ onClose }) {
   );
 }
 
-// ════════════════════════════════════════════════════════════════
-//  Main App
-// ════════════════════════════════════════════════════════════════
 const INIT_STATE = Object.fromEntries(
   ROOMS.map((r) => [
     r.id,
@@ -969,7 +922,6 @@ export default function App() {
     }
   }, []);
 
-  // ── Fetch semua room ──────────────────────────────────────────
   const fetchAll = useCallback(async () => {
     setRoomData((prev) =>
       Object.fromEntries(
@@ -986,7 +938,6 @@ export default function App() {
     return () => clearInterval(id);
   }, [fetchAll]);
 
-  // Tutup nav saat klik luar
   useEffect(() => {
     const h = (e) => {
       if (navRef.current && !navRef.current.contains(e.target))
@@ -1099,7 +1050,7 @@ export default function App() {
                   color: "#fff",
                 }}
               >
-                @AppLogo
+                @AH4D Logo
               </div>
               <span style={{ color: "#e5e7eb", fontSize: 18 }}>|</span>
               <span
